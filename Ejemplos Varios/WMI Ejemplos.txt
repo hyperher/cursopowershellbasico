@@ -1,0 +1,125 @@
+ 1. Inventario de hardware y software
+🔹 Obtener información completa de hardware
+
+Get-CimInstance -ClassName Win32_ComputerSystem |
+Select-Object Name, Manufacturer, Model, TotalPhysicalMemory
+🔹 Listar CPU, RAM y discos
+
+Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, MaxClockSpeed
+Get-CimInstance Win32_PhysicalMemory | Select-Object Manufacturer, Capacity, Speed
+Get-CimInstance Win32_DiskDrive | Select-Object Model, InterfaceType, Size
+🔹 Exportar inventario completo a CSV
+
+$info = [PSCustomObject]@{
+    ComputerName = $env:COMPUTERNAME
+    CPU          = (Get-CimInstance Win32_Processor).Name
+    RAM_GB       = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
+    Disk_GB      = [math]::Round((Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'").Size / 1GB, 2)
+    OS           = (Get-CimInstance Win32_OperatingSystem).Caption
+}
+$info | Export-Csv "C:\temp\inventario.csv" -Append -NoTypeInformation
+
+🌐 2. Administración de red
+🔹 Ver configuración IP completa
+
+Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE" |
+Select-Object Description, MACAddress, IPAddress, DefaultIPGateway, DNSServerSearchOrder
+🔹 Comprobar conectividad con WMI Ping
+
+Test-NetConnection -ComputerName 8.8.8.8 -InformationLevel Detailed
+🔹 Listar adaptadores de red activos
+
+Get-CimInstance Win32_NetworkAdapter -Filter "NetEnabled=TRUE" | Select-Object Name, MACAddress
+🔹 Obtener el dominio y usuario actual
+
+Get-CimInstance Win32_ComputerSystem | Select-Object Name, Domain, UserName
+
+🧰 3. Mantenimiento y soporte
+🔹 Reiniciar equipos remotamente
+
+Restart-Computer -ComputerName PC001,PC002 -Force
+🔹 Comprobar uptime
+
+(Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+🔹 Limpiar archivos temporales
+
+Remove-Item "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+🔹 Consultar espacio libre en disco
+
+Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" |
+Select-Object DeviceID, @{N='FreeGB';E={[math]::Round($_.FreeSpace/1GB,2)}}
+
+🧩 4. Monitoreo y rendimiento
+🔹 Uso actual de CPU y memoria
+
+Get-Counter '\Processor(_Total)\% Processor Time','\Memory\Available MBytes'
+🔹 Top 5 procesos por uso de memoria
+
+Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5 Name,WorkingSet
+🔹 Registrar rendimiento cada minuto
+
+while ($true) {
+    $cpu = (Get-Counter '\Processor(_Total)\% Processor Time').CounterSamples.CookedValue
+    $mem = (Get-Counter '\Memory\Available MBytes').CounterSamples.CookedValue
+    "$((Get-Date).ToString()) - CPU: $cpu%, RAM libre: $mem MB" | Out-File C:\temp\perf_log.txt -Append
+    Start-Sleep 60
+}
+
+🔐 5. Seguridad y cumplimiento
+🔹 Listar usuarios locales habilitados
+
+Get-CimInstance Win32_UserAccount -Filter "LocalAccount='True' and Disabled='False'" |
+Select-Object Name, SID
+🔹 Ver antivirus y firewall activos
+
+Get-CimInstance -Namespace root\SecurityCenter2 -ClassName AntiVirusProduct |
+Select-Object displayName, pathToSignedProductExe, productState
+Get-CimInstance -Namespace root\SecurityCenter2 -ClassName FirewallProduct
+🔹 Detectar cuentas sin cambio de contraseña
+
+Get-CimInstance Win32_UserAccount -Filter "PasswordChangeable='True'" |
+Select-Object Name, PasswordAge
+
+🖥️ 6. Gestión remota y despliegue
+🔹 Ejecutar comando remoto vía WMI
+
+Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList "notepad.exe" -ComputerName PC002
+🔹 Copiar archivo a varios equipos
+
+$pcs = Get-Content .\lista_pc.txt
+foreach ($pc in $pcs) {
+    Copy-Item "C:\instaladores\agent.msi" "\\$pc\C$\temp\" -Force
+}
+🔹 Instalar software remoto con WMI
+
+Invoke-WmiMethod -ComputerName PC002 -Class Win32_Product -Name Install -ArgumentList "msiexec /i \\server\share\app.msi /qn"
+
+🔄 7. Automatización avanzada / scripts programados
+🔹 Crear un reporte automático diario
+
+$report = "C:\Reports\DailyStatus_$(Get-Date -Format 'yyyyMMdd').txt"
+"Hostname: $env:COMPUTERNAME" | Out-File $report
+"Uptime: $((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime)" | Out-File $report -Append
+"Free disk space:" | Out-File $report -Append
+Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,FreeSpace | Out-File $report -Append
+🔹 Programar tareas WMI
+
+$action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-File C:\Scripts\DailyCheck.ps1"
+$trigger = New-ScheduledTaskTrigger -Daily -At 9am
+Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "Daily System Check"
+
+📦 8. Auditoría y compliance
+🔹 Listar actualizaciones instaladas
+
+Get-CimInstance Win32_QuickFixEngineering | Select HotFixID, InstalledOn, Description
+🔹 Revisar políticas locales
+
+Get-CimInstance Win32_GroupPolicyObject | Select DisplayName, Enabled
+🔹 Detectar si BitLocker está activo
+
+Get-BitLockerVolume | Select MountPoint, VolumeStatus, EncryptionPercentage
+
+🚀 Consejo final:
+Para exploración interactiva:
+
+Get-CimClass | Where-Object CimClassName -like "*network*" | Select CimClassName
