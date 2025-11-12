@@ -1,0 +1,52 @@
+Arranco definiendo la estructura de OUs pensando en un ayuntamiento pequeño y luego seguiré con el resto de bloques del script.
+
+Estructura propuesta de OUs
+Raíz laboratorio (parametrizable):
+OU=AytoLab (o nombre que pases con -RootOUName)
+
+Dentro:
+
+OU=Empleados
+OU=Alcaldia
+OU=Secretaria
+OU=Intervencion
+OU=Tesoreria
+OU=Urbanismo
+OU=ServiciosMunicipales
+OU=RecursosHumanos
+OU=TIC
+OU=CuentasServicio
+OU=Grupos
+(Puede contener subOU Departamentales si se prefiere)
+OU=Equipos (si se crean cuentas de equipo / genéricas)
+OU=Proyectos
+OU=SmartTown
+OU=PortalTransparencia (ejemplo)
+OU=InventarioDigital
+
+Cada usuario se creará en su OU de departamento bajo Empleados. Grupos globales de seguridad se alojan en OU=Grupos (o subOU según naming). Cuentas de servicio y futuras cuentas de aplicación en OU=CuentasServicio.
+
+¿Te parece bien esta jerarquía o quieres añadir/quitar algún departamento antes de continuar con la parte del script y las funciones? Indica ajustes si los hay y sigo con la implementación.
+
+
+si pero en vez de empleados llamale trabajadores e incluye tamibén al departamento de policia
+
+
+
+
+Actualizo ahora los grupos base (seguridad por departamento incluyendo Policía) y luego pasaré a las funciones del script.
+
+Diseño de grupos base
+Por cada departamento (Alcaldia, Secretaria, Intervencion, Tesoreria, Urbanismo, ServiciosMunicipales, RecursosHumanos, TIC, Policia):
+
+SG_<Dept>_Trabajadores (miembros: todos los usuarios del depto)
+FS_<Dept>_RW (acceso lectura/escritura a recurso compartido del depto)
+FS_<Dept>_RO (solo lectura; opcional según ejercicios)
+(Opcional) MAIL_<Dept> si se quisiera simular listas de distribución (podemos dejarlo comentado)
+Transversales:
+
+SG_Comite_Direccion (Alcaldia + Secretaria + Intervencion + Tesoreria + TIC)
+SG_Proyecto_SmartTown (miembros seleccionados de Urbanismo, TIC, ServiciosMunicipales)
+SG_Prevencion_Riesgos (RecursosHumanos + Policia + ServiciosMunicipales)
+SG_Incidencias_TIC (Cuentas de servicio y responsables TIC)
+SG_Control_Acceso_Policia (para ejercicios de delegación / ACL)
